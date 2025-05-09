@@ -1,40 +1,36 @@
-FROM ubuntu:22.04
+# Use a Python image with uv pre-installed
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS uv
 
-# 设置非交互式环境
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Asia/Shanghai
-
-# 安装基本工具和Python
-RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3-pip \
-    python3-venv \
-    curl \
-    tzdata \
-    --no-install-recommends \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# 设置Python别名
-RUN ln -sf /usr/bin/python3 /usr/bin/python \
-    && ln -sf /usr/bin/pip3 /usr/bin/pip
-
+# Install the project into `/app`
 WORKDIR /app
 
-COPY requirements.txt .
-COPY pyproject.toml .
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
 
-# 安装需要的Python包和mcp-server-fetch
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install -e .
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
 
-# 确保mcp-server-fetch可执行
-RUN which mcp-server-fetch
+# Install the project's dependencies using the lockfile and settings
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev --no-editable
 
-# 修改app.py中的script_path配置
-COPY . .
-RUN sed -i 's|script_path="mcp-server-fetch"|script_path="/usr/local/bin/mcp-server-fetch"|g' app.py
+# Then, add the rest of the project source code and install it
+# Installing separately from its dependencies allows optimal layer caching
+ADD . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-editable
 
-EXPOSE 8000
+FROM python:3.12-slim-bookworm
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+WORKDIR /app
+ 
+COPY --from=uv /root/.local /root/.local
+COPY --from=uv --chown=app:app /app/.venv /app/.venv
+
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
+
+# when running the container, add --db-path and a bind mount to the host's db file
+ENTRYPOINT ["mcp-server-fetch"]
