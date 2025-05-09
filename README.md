@@ -1,166 +1,145 @@
-# Slack MCP Server
+# Fetch MCP Server
+[![smithery badge](https://smithery.ai/badge/@lance2016/mcp_fetch)](https://smithery.ai/server/@lance2016/mcp_fetch)
 
-[![smithery badge](https://smithery.ai/badge/@smithery-ai/slack)](https://smithery.ai/server/@smithery-ai/slack)
+A Model Context Protocol server that provides web content fetching capabilities. This server enables LLMs to retrieve and process content from web pages, converting HTML to markdown for easier consumption.
 
-MCP Server for the Slack API, enabling Claude to interact with Slack workspaces.
+The fetch tool will truncate the response, but by using the `start_index` argument, you can specify where to start the content extraction. This lets models read a webpage in chunks, until they find the information they need.
 
-## Tools
+### Available Tools
 
-1. `slack_list_channels`
-   - List public channels in the workspace
-   - Optional inputs:
-     - `limit` (number, default: 100, max: 200): Maximum number of channels to return
-     - `cursor` (string): Pagination cursor for next page
-   - Returns: List of channels with their IDs and information
+- `fetch` - Fetches a URL from the internet and extracts its contents as markdown.
+    - `url` (string, required): URL to fetch
+    - `max_length` (integer, optional): Maximum number of characters to return (default: 5000)
+    - `start_index` (integer, optional): Start content from this character index (default: 0)
+    - `raw` (boolean, optional): Get raw content without markdown conversion (default: false)
 
-2. `slack_post_message`
-   - Post a new message to a Slack channel
-   - Required inputs:
-     - `channel_id` (string): The ID of the channel to post to
-     - `text` (string): The message text to post
-   - Returns: Message posting confirmation and timestamp
+### Prompts
 
-3. `slack_reply_to_thread`
-   - Reply to a specific message thread
-   - Required inputs:
-     - `channel_id` (string): The channel containing the thread
-     - `thread_ts` (string): Timestamp of the parent message
-     - `text` (string): The reply text
-   - Returns: Reply confirmation and timestamp
+- **fetch**
+  - Fetch a URL and extract its contents as markdown
+  - Arguments:
+    - `url` (string, required): URL to fetch
 
-4. `slack_add_reaction`
-   - Add an emoji reaction to a message
-   - Required inputs:
-     - `channel_id` (string): The channel containing the message
-     - `timestamp` (string): Message timestamp to react to
-     - `reaction` (string): Emoji name without colons
-   - Returns: Reaction confirmation
-
-5. `slack_get_channel_history`
-   - Get recent messages from a channel
-   - Required inputs:
-     - `channel_id` (string): The channel ID
-   - Optional inputs:
-     - `limit` (number, default: 10): Number of messages to retrieve
-   - Returns: List of messages with their content and metadata
-
-6. `slack_get_thread_replies`
-   - Get all replies in a message thread
-   - Required inputs:
-     - `channel_id` (string): The channel containing the thread
-     - `thread_ts` (string): Timestamp of the parent message
-   - Returns: List of replies with their content and metadata
-
-
-7. `slack_get_users`
-   - Get list of workspace users with basic profile information
-   - Optional inputs:
-     - `cursor` (string): Pagination cursor for next page
-     - `limit` (number, default: 100, max: 200): Maximum users to return
-   - Returns: List of users with their basic profiles
-
-8. `slack_get_user_profile`
-   - Get detailed profile information for a specific user
-   - Required inputs:
-     - `user_id` (string): The user's ID
-   - Returns: Detailed user profile information
-
-## Setup
-
-1. Create a Slack App:
-   - Visit the [Slack Apps page](https://api.slack.com/apps)
-   - Click "Create New App"
-   - Choose "From scratch"
-   - Name your app and select your workspace
-
-2. Configure Bot Token Scopes:
-   Navigate to "OAuth & Permissions" and add these scopes:
-   - `channels:history` - View messages and other content in public channels
-   - `channels:read` - View basic channel information
-   - `chat:write` - Send messages as the app
-   - `reactions:write` - Add emoji reactions to messages
-   - `users:read` - View users and their basic information
-
-4. Install App to Workspace:
-   - Click "Install to Workspace" and authorize the app
-   - Save the "Bot User OAuth Token" that starts with `xoxb-`
-
-5. Get your Team ID (starts with a `T`) by following [this guidance](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID#find-your-workspace-or-org-id)
-
-### Usage with Claude Desktop
-
-Add the following to your `claude_desktop_config.json`:
-
-#### npx
-
-```json
-{
-  "mcpServers": {
-    "slack": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-slack"
-      ],
-      "env": {
-        "SLACK_BOT_TOKEN": "xoxb-your-bot-token",
-        "SLACK_TEAM_ID": "T01234567"
-      }
-    }
-  }
-}
-```
-
-#### docker
-
-```json
-{
-  "mcpServers": {
-    "slack": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "SLACK_BOT_TOKEN",
-        "-e",
-        "SLACK_TEAM_ID",
-        "mcp/slack"
-      ],
-      "env": {
-        "SLACK_BOT_TOKEN": "xoxb-your-bot-token",
-        "SLACK_TEAM_ID": "T01234567"
-      }
-    }
-  }
-}
-```
+## Installation
 
 ### Installing via Smithery
 
-To install Slack MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@smithery-ai/slack):
+To install Fetch Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@lance2016/mcp_fetch):
 
 ```bash
-npx -y @smithery/cli install @smithery-ai/slack --client claude
+npx -y @smithery/cli install @lance2016/mcp_fetch --client claude
 ```
 
-### Troubleshooting
+Optionally: Install node.js, this will cause the fetch server to use a different HTML simplifier that is more robust.
 
-If you encounter permission errors, verify that:
-1. All required scopes are added to your Slack app
-2. The app is properly installed to your workspace
-3. The tokens and workspace ID are correctly copied to your configuration
-4. The app has been added to the channels it needs to access
+### Using uv (recommended)
 
-## Build
+When using [`uv`](https://docs.astral.sh/uv/) no specific installation is needed. We will
+use [`uvx`](https://docs.astral.sh/uv/guides/tools/) to directly run *mcp-server-fetch*.
 
-Docker build:
+### Using PIP
 
-```bash
-docker build -t mcp/slack -f src/slack/Dockerfile .
+Alternatively you can install `mcp-server-fetch` via pip:
+
 ```
+pip install mcp-server-fetch
+```
+
+After installation, you can run it as a script using:
+
+```
+python -m mcp_server_fetch
+```
+
+## Configuration
+
+### Configure for Claude.app
+
+Add to your Claude settings:
+
+<details>
+<summary>Using uvx</summary>
+
+```json
+"mcpServers": {
+  "fetch": {
+    "command": "uvx",
+    "args": ["mcp-server-fetch"]
+  }
+}
+```
+</details>
+
+<details>
+<summary>Using docker</summary>
+
+```json
+"mcpServers": {
+  "fetch": {
+    "command": "docker",
+    "args": ["run", "-i", "--rm", "mcp/fetch"]
+  }
+}
+```
+</details>
+
+<details>
+<summary>Using pip installation</summary>
+
+```json
+"mcpServers": {
+  "fetch": {
+    "command": "python",
+    "args": ["-m", "mcp_server_fetch"]
+  }
+}
+```
+</details>
+
+### Customization - robots.txt
+
+By default, the server will obey a websites robots.txt file if the request came from the model (via a tool), but not if
+the request was user initiated (via a prompt). This can be disabled by adding the argument `--ignore-robots-txt` to the
+`args` list in the configuration.
+
+### Customization - User-agent
+
+By default, depending on if the request came from the model (via a tool), or was user initiated (via a prompt), the
+server will use either the user-agent
+```
+ModelContextProtocol/1.0 (Autonomous; +https://github.com/modelcontextprotocol/servers)
+```
+or
+```
+ModelContextProtocol/1.0 (User-Specified; +https://github.com/modelcontextprotocol/servers)
+```
+
+This can be customized by adding the argument `--user-agent=YourUserAgent` to the `args` list in the configuration.
+
+## Debugging
+
+You can use the MCP inspector to debug the server. For uvx installations:
+
+```
+npx @modelcontextprotocol/inspector uvx mcp-server-fetch
+```
+
+Or if you've installed the package in a specific directory or are developing on it:
+
+```
+cd path/to/servers/src/fetch
+npx @modelcontextprotocol/inspector uv run mcp-server-fetch
+```
+
+## Contributing
+
+We encourage contributions to help expand and improve mcp-server-fetch. Whether you want to add new tools, enhance existing functionality, or improve documentation, your input is valuable.
+
+For examples of other MCP servers and implementation patterns, see:
+https://github.com/modelcontextprotocol/servers
+
+Pull requests are welcome! Feel free to contribute new ideas, bug fixes, or enhancements to make mcp-server-fetch even more powerful and useful.
 
 ## License
 
-This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
+mcp-server-fetch is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
