@@ -1,0 +1,9 @@
+fastapi==0.115.6
+fastmcp==2.2.10
+uvicorn==0.34.0
+httpx==0.28.1
+uv==0.7.2
+mcp==1.7.1
+loguru==0.7.3
+pydantic_core==2.27.2
+lxml==5.3.1
